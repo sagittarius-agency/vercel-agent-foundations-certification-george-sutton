@@ -10,7 +10,7 @@
  *
  * Workshop docs: https://agent-foundations-certification.vercel.app/docs/chat-agent
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Conversation,
   ConversationContent,
@@ -35,11 +35,29 @@ import type { ShoppingAgentUIMessage } from "@/lib/agent";
 import { AgentProductCard } from "@/components/agent-product-card";
 import { AgentCategories } from "@/components/agent-categories";
 import { AgentSearchResults } from "@/components/agent-search-results";
+import { useCart } from "@/components/cart-provider";
 
 export function AgentChat() {
   const { messages, error, sendMessage } = useChat<ShoppingAgentUIMessage>();
+  const { refreshCart } = useCart();
 
   const [input, setInput] = useState("");
+
+  // Re-sync cart context whenever the agent successfully adds an item.
+  // The agent's addToCart tool runs server-side and bypasses the client
+  // context, so we need to pull the updated cart from the server after it completes.
+  const completedAddToCartCount = messages
+    .flatMap(m => m.parts)
+    .filter(
+      p =>
+        p.type === "tool-addToCart" &&
+        "output" in p &&
+        (p.output as { success?: boolean })?.success === true,
+    ).length;
+
+  useEffect(() => {
+    if (completedAddToCartCount > 0) refreshCart();
+  }, [completedAddToCartCount]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = (message: PromptInputMessage) => {
     sendMessage({ text: input });

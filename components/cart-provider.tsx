@@ -28,6 +28,7 @@ interface CartContextType {
   addToCart: (product: Product, quantity: number) => void
   removeFromCart: (productId: string) => void
   updateQuantity: (productId: string, quantity: number) => void
+  refreshCart: () => Promise<void>
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -186,6 +187,15 @@ export function CartProvider({ children }: CartProviderProps) {
     [applyOptimistic],
   )
 
+  const refreshCart = useCallback(async () => {
+    try {
+      const updated = await getCartAction()
+      setCart(updated)
+    } catch {
+      // leave existing cart state on failure
+    }
+  }, [])
+
   return (
     <CartContext.Provider
       value={{
@@ -198,6 +208,7 @@ export function CartProvider({ children }: CartProviderProps) {
         addToCart,
         removeFromCart,
         updateQuantity,
+        refreshCart,
       }}
     >
       {children}
