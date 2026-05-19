@@ -8,9 +8,18 @@
  *
  * Workshop docs: https://agent-foundations-certification.vercel.app/docs/admin-chat-agent
  */
+import { createOrGetSandbox } from "@/lib/sandbox";
+import { adminAgent } from "@/lib/admin-agent";
+import { createAgentUIStreamResponse } from "ai";
 
-export const POST = async () =>
-  new Response(
-    "Not implemented yet — finish the chat-agent workshop step to enable this route.",
-    { status: 501 },
-  );
+export const POST = async (req: Request) => {
+  const { messages } = await req.json();
+
+  const sandbox = await createOrGetSandbox("admin-agent-sandbox");
+
+  return createAgentUIStreamResponse({
+    agent: adminAgent,
+    uiMessages: messages,
+    options: { sandbox },
+  });
+};
