@@ -25,16 +25,62 @@ import {
   PromptInputTextarea,
   PromptInputTools,
 } from "@/components/ai-elements/prompt-input";
+import { useChat } from "@ai-sdk/react";
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+} from "./ai-elements/message";
+import type { ShoppingAgentUIMessage } from "@/lib/agent";
+import { AgentProductCard } from "@/components/agent-product-card";
+import { AgentCategories } from "@/components/agent-categories";
+import { AgentSearchResults } from "@/components/agent-search-results";
 
 export function AgentChat() {
+  const { messages, error, sendMessage } = useChat<ShoppingAgentUIMessage>();
+
   const [input, setInput] = useState("");
 
-  const handleSubmit = (message: PromptInputMessage) => {};
+  const handleSubmit = (message: PromptInputMessage) => {
+    sendMessage({ text: input });
+    setInput("");
+  };
+
+  if (error) return <div>{error.message}</div>;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
       <Conversation className="flex-1">
-        <ConversationContent>{null}</ConversationContent>
+        <ConversationContent>
+          {messages.map(m =>
+            m.parts.map((p, i) => {
+              switch (p.type) {
+                case "text":
+                  return (
+                    <Message key={`${m.id}-${i}`} from={m.role}>
+                      <MessageContent>
+                        <MessageResponse>{p.text}</MessageResponse>
+                      </MessageContent>
+                    </Message>
+                  );
+                case "tool-getProductDetails":
+                  return (
+                    <AgentProductCard key={`${m.id}-${i}`} invocation={p} />
+                  );
+                case "tool-getAllCategories":
+                  return (
+                    <AgentCategories key={`${m.id}-${i}`} invocation={p} />
+                  );
+                case "tool-searchProducts":
+                  return (
+                    <AgentSearchResults key={`${m.id}-${i}`} invocation={p} />
+                  );
+                default:
+                  return null;
+              }
+            })
+          )}
+        </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
 
@@ -43,7 +89,7 @@ export function AgentChat() {
           <PromptInputBody>
             <PromptInputTextarea
               value={input}
-              onChange={(e) => setInput(e.currentTarget.value)}
+              onChange={e => setInput(e.currentTarget.value)}
               placeholder="Ask the agent"
             />
           </PromptInputBody>
